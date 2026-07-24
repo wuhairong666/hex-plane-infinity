@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>海克斯飞机大战：Infinity Alpha</title>
+<style>
+:root{--bg:#070b18;--panel:#11182c;--line:#273453;--text:#eef4ff;--muted:#9fb0cc;--accent:#7dd3fc;--danger:#fb7185;--good:#4ade80;--gold:#facc15}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(circle at 50% 0,#172554,#070b18 55%);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+button{font:inherit}.wrap{height:100%;display:flex;align-items:center;justify-content:center;padding:8px}.game-shell{width:min(100vw,760px);height:min(100vh,980px);display:grid;grid-template-rows:1fr 118px;border:1px solid #334155;border-radius:18px;overflow:hidden;background:#050816;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+.stage{position:relative;min-height:0;background:linear-gradient(#081026,#050816)}canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:relative;z-index:4;background:linear-gradient(180deg,#10172a,#080d1b);border-top:1px solid var(--line);padding:10px 12px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:center}
+.stat{min-width:0}.label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}.bar{height:10px;background:#222b42;border-radius:999px;overflow:hidden;margin-top:5px;border:1px solid #334155}.fill{height:100%;width:100%;background:linear-gradient(90deg,#22c55e,#86efac)}#expFill{background:linear-gradient(90deg,#38bdf8,#a5f3fc);width:0}.big{font-weight:800;font-size:18px}.actions{display:flex;gap:8px;justify-content:flex-end}.actions button,.primary{border:1px solid #38507d;background:#18233d;color:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}.actions button:active,.primary:active{transform:translateY(1px)}
+.overlay{position:absolute;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,.78);backdrop-filter:blur(5px);padding:18px}.hidden{display:none!important}.panel{width:min(650px,100%);max-height:94%;overflow:auto;border:1px solid #3b4f78;background:linear-gradient(160deg,#131d35,#080e1d);border-radius:18px;padding:20px;box-shadow:0 16px 60px rgba(0,0,0,.5)}h1,h2,p{margin-top:0}.sub{color:var(--muted);line-height:1.6}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.hex{position:relative;text-align:left;border:1px solid #3b4f78;background:#111a30;color:#fff;border-radius:14px;padding:14px;min-height:142px;cursor:pointer;transition:.16s}.hex:hover{transform:translateY(-2px);border-color:#7dd3fc}.hex .tag{font-size:12px;color:#07111f;border-radius:999px;padding:3px 8px;display:inline-block;margin-bottom:10px;font-weight:700}.hex h3{margin:0 0 8px;font-size:17px}.hex p{font-size:13px;color:#bdc9df;line-height:1.45;margin:0}.tag.fire{background:#fb7185}.tag.drone{background:#60a5fa}.tag.ram{background:#c084fc}.tag.resource{background:#facc15}.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.pill{font-size:12px;border:1px solid #3b4f78;border-radius:999px;padding:4px 9px;color:#c9d7ee}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.control-card{border:1px solid #2c3c60;border-radius:12px;padding:10px;color:#b8c7de;font-size:13px}.build-list{display:flex;flex-wrap:wrap;gap:7px}.build-chip{font-size:12px;border:1px solid #40557d;background:#18243c;border-radius:999px;padding:5px 9px}.warning{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-size:32px;font-weight:900;letter-spacing:5px;color:#fecaca;text-shadow:0 0 18px #ef4444;z-index:6;animation:blink .5s steps(2) infinite}@keyframes blink{50%{opacity:.25}}
+.mobile{display:none;position:absolute;inset:0;z-index:5;pointer-events:none}.stick{position:absolute;left:20px;bottom:18px;width:112px;height:112px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(15,23,42,.28);pointer-events:auto;touch-action:none}.knob{position:absolute;width:48px;height:48px;border-radius:50%;background:rgba(125,211,252,.6);left:32px;top:32px}.bomb{position:absolute;right:22px;bottom:28px;width:78px;height:78px;border-radius:50%;border:1px solid #fb7185;background:rgba(190,24,93,.55);color:#fff;font-weight:900;pointer-events:auto;touch-action:none}
+@media(max-width:700px){.game-shell{height:100vh;width:100vw;border-radius:0;border:0}.hud{grid-template-columns:1.2fr .8fr .8fr;padding:8px}.actions button{padding:8px}.grid{grid-template-columns:1fr}.hex{min-height:0}.mobile{display:block}.big{font-size:16px}}
+</style>
+</head>
+<body>
+<div class="wrap"><main class="game-shell">
+  <section class="stage" id="stage">
+    <canvas id="game"></canvas>
+    <div id="warning" class="warning hidden">WARNING</div>
+    <div class="mobile"><div class="stick" id="stick"><div class="knob" id="knob"></div></div><button class="bomb" id="mobileBomb">BOMB</button></div>
+    <div class="overlay" id="menu">
+      <div class="panel">
+        <div class="title-row"><div><h1>海克斯飞机大战：Infinity</h1><p class="sub">Alpha 0.1 · 三流派可玩原型</p></div><span class="pill">单文件版</span></div>
+        <p class="sub">击落敌机升级，每次升级三选一海克斯。第 4、8、12 级出现 Boss。火焰、无人机和冲撞会真正改变玩法。</p>
+        <div class="controls"><div class="control-card"><b>电脑</b><br>WASD / 方向键移动<br>自动射击 · 空格炸弹</div><div class="control-card"><b>手机</b><br>左下摇杆移动<br>右下炸弹 · 自动射击</div></div>
+        <button class="primary" id="startBtn">开始游戏</button>
+      </div>
+    </div>
+    <div class="overlay hidden" id="choice"><div class="panel"><div class="title-row"><div><h2>选择一个海克斯</h2><p class="sub">高级海克斯只有拿到前置后才会出现。</p></div><span class="pill" id="choiceLevel"></span></div><div class="grid" id="choiceGrid"></div></div></div>
+    <div class="overlay hidden" id="gameover"><div class="panel"><h2 id="resultTitle">本局结束</h2><p class="sub" id="resultStats"></p><h3>本局海克斯</h3><div class="build-list" id="buildList"></div><br><button class="primary" id="restartBtn">再来一局</button></div></div>
+  </section>
+  <footer class="hud">
+    <div class="stat"><div class="label"><span>HP</span><span id="hpText">100 / 100</span></div><div class="bar"><div class="fill" id="hpFill"></div></div><div class="label" style="margin-top:8px"><span>EXP · Lv.<b id="levelText">1</b></span><span id="expText">0 / 30</span></div><div class="bar"><div class="fill" id="expFill"></div></div></div>
+    <div><div class="label">得分</div><div class="big" id="scoreText">0</div><div class="label" style="margin-top:7px">Boss</div><div class="big" id="bossText">0</div></div>
+    <div><div class="label">炸弹</div><div class="big" id="bombText">3</div><div class="actions"><button id="pauseBtn">暂停</button><button id="bombBtn">炸弹</button></div></div>
+  </footer>
+</main></div>
+<script>
+(()=>{
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');
+const stage=document.querySelector('#stage');let W=600,H=700,dpr=1;
+function resize(){const r=stage.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();
+const $=s=>document.querySelector(s);const ui={menu:$('#menu'),choice:$('#choice'),gameover:$('#gameover'),warning:$('#warning'),hp:$('#hpFill'),hpText:$('#hpText'),exp:$('#expFill'),expText:$('#expText'),level:$('#levelText'),score:$('#scoreText'),boss:$('#bossText'),bomb:$('#bombText'),choiceGrid:$('#choiceGrid'),build:$('#buildList')};
+let audio;function tone(f=300,d=.06,type='sine',v=.025){try{audio??=new (AudioContext||webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,audio.currentTime);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+d);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+d)}catch{}}
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'){e.preventDefault();bomb()}});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+let state;
+const HEXES=[
+{id:'burn',name:'燃烧弹药',tree:'fire',tag:'火焰',req:[],desc:'子弹使敌人燃烧 2.5 秒，持续掉血。',apply:s=>s.burn=1},
+{id:'flame',name:'火焰喷射',tree:'fire',tag:'火焰',req:['burn'],desc:'每次射击额外喷出短程火焰。',apply:s=>s.flame=1},
+{id:'inferno',name:'火海',tree:'fire',tag:'火焰',req:['flame'],desc:'燃烧敌人死亡时留下火圈。',apply:s=>s.inferno=1},
+{id:'phoenix',name:'凤凰核心',tree:'fire',tag:'火焰',req:['inferno'],desc:'燃烧伤害翻倍，受致命伤时复活一次。',apply:s=>{s.phoenix=1;s.revive=1}},
+{id:'drone',name:'护航无人机',tree:'drone',tag:'无人机',req:[],desc:'获得一架自动射击的无人机。',apply:s=>s.drones++},
+{id:'guard',name:'防御无人机',tree:'drone',tag:'无人机',req:['drone'],desc:'无人机每 5 秒可挡下一颗敌弹。',apply:s=>s.guard=1},
+{id:'swarm',name:'蜂群节点',tree:'drone',tag:'无人机',req:['guard'],desc:'再获得两架无人机，无人机射速提升。',apply:s=>{s.drones+=2;s.droneRate*=.65}},
+{id:'machine',name:'机械天灾',tree:'drone',tag:'无人机',req:['swarm'],desc:'无人机子弹会分裂，并周期性释放环形弹幕。',apply:s=>s.machine=1},
+{id:'ram',name:'舍生冲撞',tree:'ram',tag:'冲撞',req:[],desc:'停止主炮，撞击敌人造成巨额伤害。',apply:s=>s.ram=1},
+{id:'ramheal',name:'战地回收',tree:'ram',tag:'冲撞',req:['ram'],desc:'撞死普通敌人有 15% 概率回复 5% 生命。',apply:s=>s.ramHeal=1},
+{id:'ramex',name:'撞击爆炸',tree:'ram',tag:'冲撞',req:['ramheal'],desc:'撞死敌人会引发范围爆炸。',apply:s=>s.ramExplode=1},
+{id:'titan',name:'泰坦战车',tree:'ram',tag:'冲撞',req:['ramex'],desc:'体型变大，减伤 35%，冲撞伤害翻倍。',apply:s=>{s.titan=1;s.damageReduce=.35}},
+{id:'magnet',name:'超级磁铁',tree:'resource',tag:'资源',req:[],desc:'经验吸附范围大幅提升。',apply:s=>s.magnet=1},
+{id:'supply',name:'补给专家',tree:'resource',tag:'资源',req:[],desc:'每 4 级额外获得一颗炸弹。',apply:s=>s.supply=1},
+{id:'rapid',name:'超频弹仓',tree:'resource',tag:'资源',req:[],desc:'主炮射速提升 22%。',apply:s=>s.fireRate*=.78}
+];
+function reset(){state={running:false,paused:false,t:0,last:0,spawn:0,shots:0,droneShot:0,ring:0,score:0,bossKills:0,bombs:3,level:1,exp:0,nextExp:30,picks:[],enemies:[],bullets:[],enemyBullets:[],particles:[],gems:[],fires:[],boss:null,player:{x:W/2,y:H-90,r:13,hp:100,maxHp:100,inv:0},burn:0,flame:0,inferno:0,phoenix:0,revive:0,drones:0,guard:0,guardReady:1,guardCd:0,droneRate:560,machine:0,ram:0,ramHeal:0,ramExplode:0,titan:0,damageReduce:0,magnet:0,supply:0,fireRate:140};updateUI()}
+function start(){reset();ui.menu.classList.add('hidden');ui.gameover.classList.add('hidden');state.running=true;state.last=performance.now();requestAnimationFrame(loop)}
+function available(){return HEXES.filter(h=>!state.picks.includes(h.id)&&h.req.every(r=>state.picks.includes(r)))}
+function levelUp(){state.level++;state.exp-=state.nextExp;state.nextExp=Math.floor(state.nextExp*1.23+8);if(state.supply&&state.level%4===0)state.bombs++;state.paused=true;const pool=available().sort(()=>Math.random()-.5).slice(0,3);ui.choiceGrid.innerHTML='';pool.forEach(h=>{const b=document.createElement('button');b.className='hex';b.innerHTML=`<span class="tag ${h.tree}">${h.tag}</span><h3>${h.name}</h3><p>${h.desc}</p>`;b.addEventListener('click',()=>{state.picks.push(h.id);h.apply(state);tone(h.tree==='fire'?220:h.tree==='drone'?520:h.tree==='ram'?150:700,.16,'sawtooth',.045);ui.choice.classList.add('hidden');state.paused=false;state.last=performance.now();updateUI()});ui.choiceGrid.appendChild(b)});$('#choiceLevel').textContent='Lv.'+state.level;ui.choice.classList.remove('hidden')}
+function spawnEnemy(){if(state.boss)return;const elite=Math.random()<Math.min(.05+state.level*.008,.2);state.enemies.push({x:25+Math.random()*(W-50),y:-30,r:elite?20:13,hp:elite?18+state.level*4:5+state.level*1.4,max:1,v:elite?42:65+Math.random()*45,shoot:600+Math.random()*1000,elite,burn:0,burnTick:0})}
+function spawnBoss(){state.paused=true;ui.warning.classList.remove('hidden');tone(90,.6,'sawtooth',.08);setTimeout(()=>{ui.warning.classList.add('hidden');state.boss={x:W/2,y:90,r:48,hp:220+state.bossKills*170,maxHp:220+state.bossKills*170,phase:0,shot:0};state.paused=false;state.last=performance.now()},1500)}
+function shoot(x,y,dx,dy,damage=2,kind='player'){state.bullets.push({x,y,dx,dy,r:kind==='drone'?3:4,damage,kind,life:4});if(kind==='player')tone(250+Math.random()*45,.025,'square',.008)}
+function enemyShoot(x,y,angle,speed=150){state.enemyBullets.push({x,y,dx:Math.cos(angle)*speed,dy:Math.sin(angle)*speed,r:5})}
+function explosion(x,y,rad=70,damage=12){for(let i=0;i<18;i++)state.particles.push({x,y,dx:(Math.random()-.5)*220,dy:(Math.random()-.5)*220,life:.55});for(const e of state.enemies){if(Math.hypot(e.x-x,e.y-y)<rad)e.hp-=damage}if(state.boss&&Math.hypot(state.boss.x-x,state.boss.y-y)<rad)state.boss.hp-=damage;tone(75,.24,'sawtooth',.06)}
+function bomb(){if(!state?.running||state.paused||state.bombs<=0)return;state.bombs--;state.enemyBullets.length=0;explosion(state.player.x,state.player.y,260,35);updateUI()}
+function damagePlayer(d){const p=state.player;if(p.inv>0)return;if(state.guard&&state.guardReady){state.guardReady=0;state.guardCd=5;tone(780,.12,'triangle',.05);return}p.hp-=d*(1-state.damageReduce);p.inv=.75;tone(120,.12,'sawtooth',.06);if(p.hp<=0){if(state.revive){state.revive=0;p.hp=p.maxHp*.5;explosion(p.x,p.y,150,30)}else endGame()}}
+function killEnemy(e,ramKill=false){state.score+=e.elite?50:15;state.gems.push({x:e.x,y:e.y,v:e.elite?12:5});if(e.burn>0&&state.inferno)state.fires.push({x:e.x,y:e.y,r:55,life:3,tick:0});if(ramKill&&state.ramHeal&&Math.random()<.15)state.player.hp=Math.min(state.player.maxHp,state.player.hp+state.player.maxHp*.05);if(ramKill&&state.ramExplode)explosion(e.x,e.y,70,15);for(let i=0;i<8;i++)state.particles.push({x:e.x,y:e.y,dx:(Math.random()-.5)*120,dy:(Math.random()-.5)*120,life:.35})}
+function update(dt){const s=state,p=s.player;s.t+=dt;p.inv=Math.max(0,p.inv-dt);if(s.guard&&!s.guardReady){s.guardCd-=dt;if(s.guardCd<=0)s.guardReady=1}
+let mx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0)+joy.x,my=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0)+joy.y;const m=Math.hypot(mx,my)||1;const speed=s.titan?230:285;p.x=Math.max(p.r,Math.min(W-p.r,p.x+mx/m*speed*dt));p.y=Math.max(p.r,Math.min(H-p.r,p.y+my/m*speed*dt));
+if(!s.ram){s.shots-=dt*1000;if(s.shots<=0){shoot(p.x,p.y-14,0,-470,3,'player');s.shots=s.fireRate;if(s.flame){for(let a=-.35;a<=.35;a+=.35)shoot(p.x,p.y-10,Math.sin(a)*210,-330,1.3,'flame')}}}
+if(s.drones){s.droneShot-=dt*1000;if(s.droneShot<=0){for(let i=0;i<s.drones;i++){const a=s.t*1.8+i*Math.PI*2/s.drones,x=p.x+Math.cos(a)*36,y=p.y+Math.sin(a)*22;shoot(x,y,0,-380,2,'drone')}s.droneShot=s.droneRate}}
+if(s.machine){s.ring-=dt;if(s.ring<=0){for(let a=0;a<Math.PI*2;a+=Math.PI/8)shoot(p.x,p.y,Math.cos(a)*260,Math.sin(a)*260,2,'drone');s.ring=3.2}}
+s.spawn-=dt;if(s.spawn<=0){spawnEnemy();s.spawn=Math.max(.18,.7-s.level*.025)}
+for(const e of s.enemies){e.y+=e.v*dt;e.shoot-=dt*1000;if(e.shoot<=0&&e.y>30){const a=Math.atan2(p.y-e.y,p.x-e.x);enemyShoot(e.x,e.y,a,e.elite?190:145);e.shoot=e.elite?700:1200+Math.random()*700}if(e.burn>0){e.burn-=dt;e.burnTick-=dt;if(e.burnTick<=0){e.hp-=s.phoenix?2.6:1.3;e.burnTick=.25}}if(s.ram&&Math.hypot(e.x-p.x,e.y-p.y)<e.r+p.r){e.hp-=s.titan?18:9;damagePlayer(4);if(e.hp<=0)killEnemy(e,true)}if(e.y>H+30){e.dead=1;damagePlayer(8)}}
+for(const b of s.bullets){b.x+=b.dx*dt;b.y+=b.dy*dt;b.life-=dt;for(const e of s.enemies){if(!e.dead&&Math.hypot(e.x-b.x,e.y-b.y)<e.r+b.r){e.hp-=b.damage;if(s.burn||b.kind==='flame'){e.burn=2.5;e.burnTick=0}b.dead=1;if(e.hp<=0){e.dead=1;killEnemy(e,false)}break}}if(s.boss&&!b.dead&&Math.hypot(s.boss.x-b.x,s.boss.y-b.y)<s.boss.r+b.r){s.boss.hp-=b.damage;b.dead=1}}
+for(const f of s.fires){f.life-=dt;f.tick-=dt;if(f.tick<=0){for(const e of s.enemies)if(Math.hypot(e.x-f.x,e.y-f.y)<f.r)e.hp-=2;f.tick=.3}}
+if(s.boss){const b=s.boss;b.x=W/2+Math.sin(s.t*.8)*(W*.32);b.shot-=dt;if(b.shot<=0){const count=b.hp<b.maxHp*.5?16:10;for(let i=0;i<count;i++)enemyShoot(b.x,b.y,i*Math.PI*2/count+(s.t*.4),b.hp<b.maxHp*.5?195:155);b.shot=b.hp<b.maxHp*.5?.72:1.1}if(s.ram&&Math.hypot(b.x-p.x,b.y-p.y)<b.r+p.r){b.hp-=s.titan?28:14;damagePlayer(9)}if(b.hp<=0){s.boss=null;s.bossKills++;s.score+=1000;s.player.hp=Math.min(s.player.maxHp,s.player.hp+15);s.gems.push({x:W/2,y:100,v:40});explosion(W/2,100,180,0)}}
+for(const eb of s.enemyBullets){eb.x+=eb.dx*dt;eb.y+=eb.dy*dt;if(Math.hypot(eb.x-p.x,eb.y-p.y)<eb.r+p.r){eb.dead=1;damagePlayer(11)}}
+for(const g of s.gems){const dist=Math.hypot(p.x-g.x,p.y-g.y);if(dist<(s.magnet?230:90)){g.x+=(p.x-g.x)*dt*5;g.y+=(p.y-g.y)*dt*5}if(dist<18){g.dead=1;s.exp+=g.v;while(s.exp>=s.nextExp){levelUp();break}}}
+for(const q of s.particles){q.x+=q.dx*dt;q.y+=q.dy*dt;q.life-=dt}
+s.enemies=s.enemies.filter(e=>!e.dead&&e.hp>0);s.bullets=s.bullets.filter(b=>!b.dead&&b.life>0&&b.y>-40&&b.y<H+40&&b.x>-40&&b.x<W+40);s.enemyBullets=s.enemyBullets.filter(b=>!b.dead&&b.y>-30&&b.y<H+30&&b.x>-30&&b.x<W+30);s.gems=s.gems.filter(g=>!g.dead);s.particles=s.particles.filter(q=>q.life>0);s.fires=s.fires.filter(f=>f.life>0);
+if(!s.boss&&[4,8,12,16,20].includes(s.level)&&s.bossKills<[4,8,12,16,20].indexOf(s.level)+1)spawnBoss();updateUI()}
+function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#050816';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(148,163,184,.38)';for(let i=0;i<70;i++){const y=(i*83+state.t*35*(1+i%3))%H,x=(i*137)%W;ctx.fillRect(x,y,i%4?1:2,i%4?1:2)}
+for(const f of state.fires){ctx.globalAlpha=Math.max(0,f.life/3)*.35;ctx.fillStyle='#fb7185';ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+for(const g of state.gems){ctx.fillStyle='#67e8f9';ctx.beginPath();ctx.moveTo(g.x,g.y-6);ctx.lineTo(g.x+5,g.y);ctx.lineTo(g.x,g.y+6);ctx.lineTo(g.x-5,g.y);ctx.fill()}
+for(const b of state.bullets){ctx.fillStyle=b.kind==='flame'?'#fb7185':b.kind==='drone'?'#60a5fa':'#e0f2fe';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill()}
+for(const b of state.enemyBullets){ctx.fillStyle='#f43f5e';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill()}
+for(const e of state.enemies){ctx.fillStyle=e.burn>0?'#fb923c':e.elite?'#facc15':'#94a3b8';ctx.beginPath();ctx.moveTo(e.x,e.y+e.r);ctx.lineTo(e.x-e.r,e.y-e.r);ctx.lineTo(e.x+e.r,e.y-e.r);ctx.closePath();ctx.fill()}
+if(state.boss){const b=state.boss;ctx.fillStyle='#7c3aed';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111827';ctx.fillRect(W*.15,14,W*.7,9);ctx.fillStyle='#e879f9';ctx.fillRect(W*.15,14,W*.7*(b.hp/b.maxHp),9)}
+const p=state.player;if(p.inv<=0||Math.floor(state.t*18)%2===0){ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle=state.ram?'#c084fc':'#7dd3fc';ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(-13,15);ctx.lineTo(0,9);ctx.lineTo(13,15);ctx.closePath();ctx.fill();ctx.restore()}
+if(state.drones){for(let i=0;i<state.drones;i++){const a=state.t*1.8+i*Math.PI*2/state.drones,x=p.x+Math.cos(a)*36,y=p.y+Math.sin(a)*22;ctx.fillStyle=state.guard&&state.guardReady?'#a7f3d0':'#60a5fa';ctx.fillRect(x-5,y-5,10,10)}}
+for(const q of state.particles){ctx.globalAlpha=q.life/.55;ctx.fillStyle='#f8fafc';ctx.fillRect(q.x,q.y,3,3)}ctx.globalAlpha=1}
+function updateUI(){if(!state)return;const p=state.player;ui.hp.style.width=Math.max(0,p.hp/p.maxHp*100)+'%';ui.hpText.textContent=Math.ceil(p.hp)+' / '+p.maxHp;ui.exp.style.width=(state.exp/state.nextExp*100)+'%';ui.expText.textContent=Math.floor(state.exp)+' / '+state.nextExp;ui.level.textContent=state.level;ui.score.textContent=state.score;ui.boss.textContent=state.bossKills;ui.bomb.textContent=state.bombs}
+function loop(t){if(!state.running)return;const dt=Math.min(.033,(t-state.last)/1000||0);state.last=t;if(!state.paused)update(dt);draw();requestAnimationFrame(loop)}
+function endGame(){state.running=false;ui.gameover.classList.remove('hidden');$('#resultTitle').textContent='本局结束 · '+buildName();$('#resultStats').textContent=`得分 ${state.score} · Boss ${state.bossKills} · 等级 ${state.level}`;ui.build.innerHTML=state.picks.length?'':`<span class="build-chip">尚未获得海克斯</span>`;state.picks.forEach(id=>{const h=HEXES.find(x=>x.id===id);const c=document.createElement('span');c.className='build-chip';c.textContent=h.name;ui.build.appendChild(c)})}
+function buildName(){const f=state.picks.filter(x=>HEXES.find(h=>h.id===x)?.tree==='fire').length,d=state.picks.filter(x=>HEXES.find(h=>h.id===x)?.tree==='drone').length,r=state.picks.filter(x=>HEXES.find(h=>h.id===x)?.tree==='ram').length;if(f>=3&&r>=2)return'凤凰冲锋';if(d>=3)return'机械蜂群';if(r>=3)return'不死战车';if(f>=3)return'烈焰风暴';return'未定型构筑'}
+$('#startBtn').addEventListener('click',start);$('#restartBtn').addEventListener('click',start);$('#bombBtn').addEventListener('click',bomb);$('#mobileBomb').addEventListener('click',bomb);$('#pauseBtn').addEventListener('click',()=>{if(!state?.running)return;state.paused=!state.paused;$('#pauseBtn').textContent=state.paused?'继续':'暂停';state.last=performance.now()});
+const joy={x:0,y:0};const stick=$('#stick'),knob=$('#knob');function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=Math.min(36,Math.hypot(dx,dy)),a=Math.atan2(dy,dx);joy.x=Math.cos(a)*(m/36);joy.y=Math.sin(a)*(m/36);knob.style.transform=`translate(${joy.x*32}px,${joy.y*32}px)`}stick.addEventListener('pointerdown',e=>{stick.setPointerCapture(e.pointerId);setJoy(e)});stick.addEventListener('pointermove',e=>{if(stick.hasPointerCapture(e.pointerId))setJoy(e)});stick.addEventListener('pointerup',e=>{joy.x=joy.y=0;knob.style.transform='translate(0,0)'});
+reset();draw();
+})();
+</script>
+</body></html>
