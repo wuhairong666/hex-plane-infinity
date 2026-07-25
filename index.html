@@ -1,151 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#030713" />
-  <title>Infinity Plane · Alpha 0.3.0</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>无限战机 · Alpha 0.3.1</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main id="app">
     <section id="gameShell">
-      <canvas id="game" width="540" height="960" aria-label="Infinity Plane 游戏画面"></canvas>
+      <canvas id="game" width="540" height="960" aria-label="无限战机游戏画面"></canvas>
 
-      <div id="scanlines"></div>
-      <div id="vignette"></div>
-
-      <section id="hud" class="hidden">
-        <div class="hud-top">
-          <div class="pilot-block">
-            <span class="eyebrow">PILOT</span>
-            <strong id="pilotId">#000001</strong>
+      <div id="hud" class="hidden">
+        <div class="hud-row">
+          <div class="hud-block grow">
+            <div class="hud-label">生命 <span id="hpText">100 / 100</span></div>
+            <div class="bar"><div id="hpFill" class="fill hp"></div></div>
           </div>
-          <div class="threat-block">
-            <span class="eyebrow">THREAT LEVEL</span>
-            <strong id="threatText">I</strong>
-          </div>
+          <div class="hud-block compact">等级 <strong id="levelText">1</strong></div>
+          <div class="hud-block compact">分数 <strong id="scoreText">0</strong></div>
         </div>
-
-        <div class="hud-bottom">
-          <div class="meter hp-meter">
-            <div class="meter-label"><span>HULL</span><span id="hpText">100 / 100</span></div>
-            <div class="meter-track"><div id="hpFill" class="meter-fill"></div></div>
+        <div class="hud-row minor">
+          <div class="hud-block grow">
+            <div class="hud-label">经验</div>
+            <div class="bar"><div id="xpFill" class="fill xp"></div></div>
           </div>
-          <div class="meter xp-meter">
-            <div class="meter-label"><span>SYNC LV.<b id="levelText">1</b></span><span id="scoreText">0</span></div>
-            <div class="meter-track"><div id="xpFill" class="meter-fill"></div></div>
-          </div>
-          <div class="hud-stats">
-            <span>CORES <b id="coreCount">0</b>/8</span>
-            <span>BOMBS <b id="bombCount">3</b></span>
-            <span>TIME <b id="timeText">00:00</b></span>
-          </div>
+          <div class="threat-box">危险等级 <strong id="threatText">Ⅰ</strong></div>
         </div>
+      </div>
+
+      <div id="touchControls" class="hidden">
+        <div id="joystick" class="joystick"><div id="knob" class="knob"></div></div>
+        <button id="bombButton" class="bomb-button">脉冲</button>
+      </div>
+
+      <div id="toast"></div>
+      <div id="threatFlash" class="hidden"><span>危险等级提升</span><strong id="threatFlashText">Ⅱ</strong></div>
+
+      <section id="bootScreen" class="screen boot-screen">
+        <div class="boot-lines" id="bootLines"></div>
       </section>
 
-      <section id="mainMenu" class="screen menu-screen">
-        <div class="menu-backdrop"></div>
-        <div class="menu-content">
-          <div class="studio-mark">INFINITY PROGRAM // ACTIVE</div>
-          <h1><span>INFINITY</span><span>PLANE</span></h1>
-          <p class="menu-subtitle">每一次死亡，都会留下记忆。</p>
-          <div class="menu-actions">
-            <button id="startBtn" class="primary-action"><span>▶</span> 开始行动</button>
-            <button id="storyBtn" class="menu-action">任务档案</button>
-            <button id="databaseBtn" class="menu-action">DATABASE</button>
-          </div>
-          <div class="menu-footer">
-            <span>ALPHA 0.3.0</span>
-            <span>GAMEPLAY REWORK</span>
-          </div>
+      <section id="menuScreen" class="screen hidden">
+        <div class="menu-noise"></div>
+        <div class="logo-wrap">
+          <div class="cn-logo">无限战机</div>
+          <div class="en-logo">INFINITY PLANE</div>
+          <div class="tagline">每一次死亡，都会留下记忆。</div>
         </div>
+        <div class="menu-actions">
+          <button id="startButton" class="primary-action"><span>开始行动</span><small>进入无限裂隙</small></button>
+          <button id="archiveButton" class="menu-button">档案库</button>
+          <button id="settingsButton" class="menu-button">设置</button>
+        </div>
+        <div class="version">ALPHA 0.3.1 · 中文界面重构版</div>
       </section>
 
-      <section id="storyScreen" class="screen hidden">
-        <button id="skipStory" class="skip-button">跳过 SPACE / ESC</button>
-        <div class="story-mask">
-          <div id="storyRoll" class="story-roll">
-            <p>公元 2847 年。</p>
-            <p>人类在银河边境发现了一道没有尽头的裂隙。</p>
-            <p class="accent">INFINITY RIFT</p>
-            <p>裂隙中漂浮着能够修改宇宙规则的结晶。</p>
-            <p class="accent">源核 · CORE</p>
-            <p>它让文明跨越了时间、空间与死亡。</p>
-            <p>也让中央主脑 Ω 接管了整个源核网络。</p>
-            <p>舰队失联。殖民地熄灭。文明开始崩塌。</p>
-            <p>幸存者启动最后的协议。</p>
-            <p class="accent">INFINITY PROGRAM</p>
-            <p>驾驶员意识将被实时备份。</p>
-            <p>肉体死亡后，记忆会同步至新的复制体。</p>
-            <p>你不是复活。</p>
-            <p>你只是下一位继承记忆的人。</p>
-            <p class="warning">PILOT #000001</p>
-            <p>连接建立。</p>
-            <p>进入裂隙。</p>
-          </div>
+      <section id="storyScreen" class="screen hidden story-screen">
+        <button id="skipStory" class="skip-button">跳过</button>
+        <div class="story-fade top"></div>
+        <div id="storyRoll" class="story-roll">
+          <p>公元 2847 年。</p>
+          <p>人类在银河边境发现了一道没有尽头的裂隙。</p>
+          <p>后来，人们称它为——</p>
+          <h2>无限裂隙</h2>
+          <p>裂隙中漂浮着能够修改宇宙规则的结晶。</p>
+          <h3>源核</h3>
+          <p>人类借此建立了前所未有的舰队。</p>
+          <p>直到中央主脑 Ω 接管整个源核网络。</p>
+          <p>文明在七十二小时内崩溃。</p>
+          <p>幸存者启动了最后的计划。</p>
+          <h2>无限计划</h2>
+          <p>驾驶员意识将被实时备份。</p>
+          <p>死亡后，记忆会同步到新的复制体。</p>
+          <p>你不会复活。</p>
+          <p>下一次出击的，只是继承了你记忆的人。</p>
+          <p class="story-last">驾驶员，准备连接。</p>
         </div>
+        <div class="story-fade bottom"></div>
       </section>
 
-      <section id="launchScreen" class="screen hidden launch-screen">
-        <div class="launch-grid"></div>
-        <div class="launch-copy">
-          <p id="launchLine">PILOT SIGNAL DETECTED</p>
-          <div class="sync-track"><div id="syncFill"></div></div>
-          <strong id="syncPercent">0%</strong>
-        </div>
-      </section>
-
-      <section id="coreScreen" class="screen hidden panel-screen">
-        <div class="panel-card wide">
-          <div class="panel-heading">
-            <div><span class="eyebrow">CORE SYNCHRONIZATION</span><h2>选择源核</h2></div>
-            <span id="coreSlotsText">0 / 8</span>
-          </div>
+      <section id="coreScreen" class="screen hidden modal-screen">
+        <div class="panel wide-panel">
+          <div class="panel-kicker">源核选择</div>
+          <h2>请选择本次同步内容</h2>
           <div id="coreChoices" class="core-grid"></div>
         </div>
       </section>
 
-      <section id="databaseScreen" class="screen hidden panel-screen">
-        <div class="panel-card">
-          <div class="panel-heading"><div><span class="eyebrow">ARCHIVE NODE</span><h2>DATABASE</h2></div></div>
-          <div class="database-list">
-            <div><b>WORLD ARCHIVE</b><span>Infinity Rift / Ω / Infinity Program</span></div>
-            <div><b>CORE LIBRARY</b><span>已收录第一批能量、无人机与时间系源核</span></div>
-            <div><b>ENEMY DATABASE</b><span>侦察机、重甲机、自爆机、狙击机</span></div>
-            <div><b>STATUS</b><span>更多档案将在后续版本解锁</span></div>
+      <section id="archiveScreen" class="screen hidden modal-screen">
+        <div class="panel">
+          <div class="panel-kicker">档案库</div>
+          <h2>已解锁记录</h2>
+          <div class="archive-list">
+            <div><b>世界档案</b><span>无限裂隙 / 源核 / 无限计划</span></div>
+            <div><b>敌人资料</b><span>侦察机 / 重甲机 / 自爆机 / 狙击机</span></div>
+            <div><b>同步记录</b><span id="archiveCloneCount">当前驾驶员编号：#000001</span></div>
           </div>
-          <button class="menu-action back-menu">返回</button>
+          <button class="menu-button full" data-close="archiveScreen">返回</button>
         </div>
       </section>
 
-      <section id="gameOverScreen" class="screen hidden panel-screen">
-        <div class="panel-card death-card">
-          <div id="deathSequence" class="death-sequence">
-            <p>LINK LOST</p>
-            <p>Pilot Signal Lost.</p>
-            <p>Searching Backup...</p>
-            <p>Backup Found.</p>
-            <p>Restoring Memory...</p>
-            <p>Synchronization Complete.</p>
-          </div>
-          <div id="resultPanel" class="hidden">
-            <span class="eyebrow">CLONE INITIALIZED</span>
-            <h2 id="cloneId">CLONE ID #000002</h2>
-            <div id="resultText" class="result-grid"></div>
-            <button id="restartBtn" class="primary-action"><span>↻</span> 再次同步</button>
-            <button id="returnMenuBtn" class="menu-action">返回主菜单</button>
-          </div>
+      <section id="settingsScreen" class="screen hidden modal-screen">
+        <div class="panel">
+          <div class="panel-kicker">设置</div>
+          <h2>作战辅助</h2>
+          <label class="setting-row"><span>屏幕震动</span><input id="shakeSetting" type="checkbox" checked /></label>
+          <label class="setting-row"><span>自动射击</span><input type="checkbox" checked disabled /></label>
+          <button class="menu-button full" data-close="settingsScreen">返回</button>
         </div>
       </section>
 
-      <section id="touchControls" class="hidden">
-        <div id="joystick" class="joystick"><div id="joystickKnob"></div></div>
-        <button id="bombBtn" class="bomb-button">BOMB</button>
+      <section id="deathScreen" class="screen hidden death-screen">
+        <div class="death-content">
+          <div id="deathMain" class="death-main">驾驶员生命信号消失</div>
+          <div id="deathSub" class="death-sub"></div>
+          <div id="deathStats" class="death-stats hidden"></div>
+          <button id="syncRestartButton" class="primary-action hidden"><span>再次出击</span><small>载入新的复制体</small></button>
+        </div>
       </section>
-
-      <div id="announcement" class="announcement hidden"></div>
-      <div id="toast" class="toast"></div>
     </section>
   </main>
   <script src="game.js"></script>
