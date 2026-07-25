@@ -1,101 +1,153 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>海克斯飞机大战 Alpha 0.1</title>
-<style>
-  :root{--bg:#070b18;--panel:#10182b;--line:#33d6ff;--text:#eaf8ff;--muted:#91a7bd;--danger:#ff5d73;--good:#46e58c;--purple:#a96cff;}
-  *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 50% 20%,#12213f,#050814 65%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
-  #app{height:100%;display:flex;align-items:center;justify-content:center;padding:12px}
-  #wrap{position:relative;width:min(100vw - 24px,520px);height:min(100vh - 24px,900px);aspect-ratio:9/16;background:#050914;border:1px solid rgba(51,214,255,.55);border-radius:20px;overflow:hidden;box-shadow:0 0 30px rgba(51,214,255,.2)}
-  canvas{width:100%;height:100%;display:block;touch-action:none;background:linear-gradient(#091126,#050914 70%)}
-  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(3,7,17,.78);backdrop-filter:blur(6px);z-index:5}
-  .panel{width:100%;max-width:420px;background:linear-gradient(180deg,rgba(17,26,47,.97),rgba(8,13,27,.97));border:1px solid rgba(51,214,255,.4);border-radius:18px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.45)}
-  h1{font-size:28px;margin:0 0 8px;text-align:center}.sub{text-align:center;color:var(--muted);margin-bottom:18px}
-  button{border:0;border-radius:12px;padding:13px 16px;font-size:16px;font-weight:700;color:#04111a;background:linear-gradient(180deg,#67eaff,#25bfe8);cursor:pointer}
-  button.secondary{color:var(--text);background:#17233d;border:1px solid #2e4a70}
-  .row{display:flex;gap:10px}.row>*{flex:1}.tips{font-size:13px;line-height:1.7;color:#a9bfd1;margin-top:14px}
-  #hud{position:absolute;left:10px;right:10px;bottom:10px;z-index:2;background:rgba(7,12,24,.88);border:1px solid rgba(51,214,255,.35);border-radius:14px;padding:9px 10px;pointer-events:none}
-  .hudtop{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;font-size:13px}.bar{height:9px;background:#1c2941;border-radius:999px;overflow:hidden;margin-top:5px}.fill{height:100%;background:linear-gradient(90deg,#46e58c,#8df7ba);width:100%}.exp{background:linear-gradient(90deg,#36b8ff,#75e8ff)}
-  .hidden{display:none!important}.hexgrid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}.hex{padding:14px;border-radius:14px;background:#121d34;border:1px solid #35577d;cursor:pointer}.hex:hover{border-color:#66ddff}.hex b{display:block;font-size:17px;margin-bottom:5px}.hex small{color:#a9bfd1;line-height:1.5}.tag{display:inline-block;margin-top:8px;padding:3px 8px;border-radius:999px;font-size:12px;background:#182c49;color:#7ee8ff}
-  #touchControls{position:absolute;inset:0;pointer-events:none;z-index:3}.joy{position:absolute;left:18px;bottom:90px;width:120px;height:120px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);pointer-events:auto;touch-action:none}.knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(102,232,255,.45);border:1px solid rgba(255,255,255,.35)}
-  .bomb{position:absolute;right:22px;bottom:105px;width:76px;height:76px;border-radius:50%;pointer-events:auto;background:rgba(169,108,255,.85);color:white;border:1px solid rgba(255,255,255,.5)}
-  #toast{position:absolute;top:70px;left:50%;transform:translateX(-50%);z-index:4;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);font-weight:700;opacity:0;transition:.25s}
-  @media (pointer:fine){#touchControls{display:none}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#030713" />
+  <title>Infinity Plane · Alpha 0.3.0</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div id="app"><div id="wrap">
-<canvas id="game" width="540" height="960"></canvas>
-<div id="hud" class="hidden">
-  <div class="hudtop"><div>HP <span id="hpText">100/100</span><div class="bar"><div id="hpFill" class="fill"></div></div></div><div>等级 <b id="lv">1</b></div><div>分数 <b id="score">0</b></div></div>
-  <div style="margin-top:7px;font-size:12px">经验<div class="bar"><div id="expFill" class="fill exp"></div></div></div>
-</div>
-<div id="touchControls" class="hidden"><div id="joy" class="joy"><div id="knob" class="knob"></div></div><button id="bombBtn" class="bomb">炸弹</button></div>
-<div id="toast"></div>
-<div id="start" class="overlay"><div class="panel"><h1>海克斯飞机大战</h1><div class="sub">Alpha 0.1 · 可玩测试版</div><div class="row"><button id="startBtn">开始游戏</button></div><div class="tips">电脑：WASD / 方向键移动，B 使用炸弹，P 暂停。<br>平板/手机：左侧摇杆移动，右侧炸弹。<br>自动射击；升级时三选一海克斯。</div></div></div>
-<div id="hexPanel" class="overlay hidden"><div class="panel"><h1 style="font-size:24px">选择一个海克斯</h1><div class="sub">构筑会真正改变玩法</div><div id="hexChoices" class="hexgrid"></div></div></div>
-<div id="gameover" class="overlay hidden"><div class="panel"><h1>战斗结束</h1><div id="result" class="sub" style="line-height:1.8"></div><div class="row"><button id="restartBtn">再来一局</button></div></div></div>
-</div></div>
-<script>
-const c=document.getElementById('game'),ctx=c.getContext('2d');
-const W=c.width,H=c.height,SAFE_BOTTOM=120;
-const ui={start:$('#start'),hud:$('#hud'),touch:$('#touchControls'),hex:$('#hexPanel'),over:$('#gameover'),score:$('#score'),lv:$('#lv'),hpText:$('#hpText'),hpFill:$('#hpFill'),expFill:$('#expFill'),toast:$('#toast')};
-function $(s){return document.querySelector(s)}
-const keys={}; let running=false,paused=false,last=0,spawnTimer=0,bossTimer=0,shake=0;
-let player,bullets,enemies,enemyBullets,particles,drones,burns,score,level,xp,nextXp,bombs,hexes,bossCount;
-const stars=Array.from({length:90},()=>({x:Math.random()*W,y:Math.random()*H,s:.4+Math.random()*1.7,v:20+Math.random()*70}));
-const HEXES=[
-{id:'fire',name:'燃烧弹药',tag:'火焰流',desc:'子弹命中附加持续燃烧伤害。',req:()=>!hexes.fire,apply:()=>hexes.fire=1},
-{id:'fire2',name:'烈焰蔓延',tag:'火焰流',desc:'燃烧伤害提高，并有概率传给附近敌人。',req:()=>hexes.fire&&!hexes.fire2,apply:()=>hexes.fire2=1},
-{id:'drone',name:'护航无人机',tag:'无人机流',desc:'获得1架自动射击无人机。',req:()=>true,apply:()=>{hexes.drone=(hexes.drone||0)+1;drones.push({a:Math.random()*6.28})}},
-{id:'shield',name:'防御无人机',tag:'无人机流',desc:'无人机可拦截敌方子弹，带冷却。',req:()=>hexes.drone&&!hexes.shield,apply:()=>hexes.shield=1},
-{id:'ram',name:'舍生冲撞',tag:'冲撞流',desc:'停止主炮射击，撞击敌人造成巨额伤害。',req:()=>!hexes.ram,apply:()=>hexes.ram=1},
-{id:'ramBoom',name:'撞击爆炸',tag:'冲撞流',desc:'撞击击杀会产生范围爆炸。',req:()=>hexes.ram&&!hexes.ramBoom,apply:()=>hexes.ramBoom=1},
-{id:'rapid',name:'极速装填',tag:'通用',desc:'射速提高25%。',req:()=>true,apply:()=>player.fireRate*=.75},
-{id:'power',name:'高能弹头',tag:'通用',desc:'子弹伤害提高35%。',req:()=>true,apply:()=>player.damage*=1.35},
-{id:'magnet',name:'超级磁铁',tag:'资源流',desc:'经验拾取范围大幅提升。',req:()=>!hexes.magnet,apply:()=>hexes.magnet=1},
-{id:'repair',name:'战地维修',tag:'资源流',desc:'立刻恢复30点生命并提高最大生命。',req:()=>true,apply:()=>{player.maxHp+=10;player.hp=Math.min(player.maxHp,player.hp+30)}}
-];
-function reset(){player={x:W/2,y:H-SAFE_BOTTOM-80,r:15,speed:310,hp:100,maxHp:100,damage:12,fireRate:150,fireCd:0,inv:0};bullets=[];enemies=[];enemyBullets=[];particles=[];drones=[];burns=[];score=0;level=1;xp=0;nextXp=60;bombs=3;hexes={};bossCount=0;spawnTimer=0;bossTimer=0;paused=false;updateUI()}
-function startGame(){reset();running=true;ui.start.classList.add('hidden');ui.over.classList.add('hidden');ui.hud.classList.remove('hidden');ui.touch.classList.remove('hidden');last=performance.now();requestAnimationFrame(loop)}
-function spawnEnemy(){const elite=Math.random()<.1;enemies.push({x:30+Math.random()*(W-60),y:-30,r:elite?22:15,hp:elite?65:28,max:elite?65:28,v:elite?70:110+Math.random()*60,shoot:700+Math.random()*900,elite,boss:false,burn:0})}
-function spawnBoss(){bossCount++;toast('⚠ BOSS 来袭');enemies.push({x:W/2,y:90,r:52,hp:700+bossCount*250,max:700+bossCount*250,v:35,shoot:500,boss:true,phase:0,dir:1,burn:0})}
-function shoot(){if(hexes.ram)return;bullets.push({x:player.x,y:player.y-20,v:-620,r:4,d:player.damage});if(hexes.drone){for(let i=0;i<drones.length;i++){let d=drones[i];bullets.push({x:player.x+Math.cos(d.a)*34,y:player.y+Math.sin(d.a)*22,v:-560,r:3,d:player.damage*.55})}}}
-function enemyShoot(e){if(e.boss){for(let a=-1.05;a<=1.05;a+=.35){enemyBullets.push({x:e.x,y:e.y+20,vx:Math.sin(a)*170,vy:Math.cos(a)*170,r:6})}}else enemyBullets.push({x:e.x,y:e.y+10,vx:(player.x-e.x)*.15,vy:180,r:5})}
-function explode(x,y,n=18){for(let i=0;i<n;i++){let a=Math.random()*6.28,s=40+Math.random()*220;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.3+Math.random()*.5,max:.8,r:2+Math.random()*4})}shake=8}
-function hitEnemy(e,dmg){e.hp-=dmg;if(hexes.fire){e.burn=Math.max(e.burn,2.5)}if(e.hp<=0){score+=e.boss?1000:e.elite?90:25;xp+=e.boss?70:e.elite?18:8;explode(e.x,e.y,e.boss?55:18);if(hexes.ramBoom)areaDamage(e.x,e.y,70,40);if(e.boss){bossTimer=0;toast('BOSS 已击破')}return true}return false}
-function areaDamage(x,y,r,d){for(const e of enemies){if(Math.hypot(e.x-x,e.y-y)<r)e.hp-=d}}
-function damagePlayer(d){if(player.inv>0)return;player.hp-=d;player.inv=.7;shake=12;if(player.hp<=0)endGame()}
-function bomb(){if(!running||paused||bombs<=0)return;bombs--;enemyBullets.length=0;for(const e of enemies)e.hp-=150;explode(player.x,player.y,60);toast('炸弹剩余 '+bombs)}
-function update(dt){for(const s of stars){s.y+=s.v*dt;if(s.y>H){s.y=0;s.x=Math.random()*W}}
-let dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0)+joyX,dy=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0)+joyY;let len=Math.hypot(dx,dy)||1;player.x+=dx/len*player.speed*dt;player.y+=dy/len*player.speed*dt;player.x=Math.max(20,Math.min(W-20,player.x));player.y=Math.max(40,Math.min(H-SAFE_BOTTOM-22,player.y));
-player.fireCd-=dt*1000;if(player.fireCd<=0){shoot();player.fireCd=player.fireRate}player.inv=Math.max(0,player.inv-dt);
-spawnTimer-=dt*1000;bossTimer+=dt;if(spawnTimer<=0){spawnEnemy();spawnTimer=Math.max(230,720-level*20)}if(bossTimer>25&&!enemies.some(e=>e.boss))spawnBoss();
-for(let i=bullets.length-1;i>=0;i--){let b=bullets[i];b.y+=b.v*dt;if(b.y<-20){bullets.splice(i,1);continue}for(let j=enemies.length-1;j>=0;j--){let e=enemies[j];if(Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){let dead=hitEnemy(e,b.d);bullets.splice(i,1);if(dead)enemies.splice(j,1);break}}}
-for(let i=enemies.length-1;i>=0;i--){let e=enemies[i];if(e.boss){e.x+=e.dir*90*dt;if(e.x<70||e.x>W-70)e.dir*=-1}else e.y+=e.v*dt;e.shoot-=dt*1000;if(e.shoot<=0){enemyShoot(e);e.shoot=e.boss?700:1200+Math.random()*800}if(e.burn>0){e.burn-=dt;e.hp-=(hexes.fire2?18:10)*dt;if(Math.random()<.12*dt*60)particles.push({x:e.x+(Math.random()-.5)*e.r,y:e.y+(Math.random()-.5)*e.r,vx:0,vy:-30,life:.35,max:.35,r:3});if(e.hp<=0){hitEnemy(e,9999);enemies.splice(i,1);continue}}
-if(Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){if(hexes.ram){let dead=hitEnemy(e,80);damagePlayer(e.boss?18:8);if(dead)enemies.splice(i,1)}else{damagePlayer(e.boss?25:15);enemies.splice(i,1);explode(e.x,e.y)}}else if(e.y>H){enemies.splice(i,1)}}
-for(let i=enemyBullets.length-1;i>=0;i--){let b=enemyBullets[i];b.x+=b.vx*dt;b.y+=b.vy*dt;if(hexes.shield&&drones.length){let blocked=false;for(const d of drones){let x=player.x+Math.cos(d.a)*34,y=player.y+Math.sin(d.a)*24;if(Math.hypot(b.x-x,b.y-y)<12){blocked=true;explode(b.x,b.y,5);break}}if(blocked){enemyBullets.splice(i,1);continue}}if(Math.hypot(b.x-player.x,b.y-player.y)<b.r+player.r){damagePlayer(10);enemyBullets.splice(i,1);continue}if(b.y>H+20||b.x<-20||b.x>W+20)enemyBullets.splice(i,1)}
-for(const d of drones)d.a+=dt*2.1;
-for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
-while(xp>=nextXp){xp-=nextXp;level++;nextXp=Math.floor(nextXp*1.22);showHex();break}updateUI()}
-function draw(){ctx.save();if(shake){ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake*=.86}ctx.clearRect(0,0,W,H);ctx.fillStyle='#050914';ctx.fillRect(0,0,W,H);for(const s of stars){ctx.globalAlpha=s.s/2;ctx.fillStyle='#8bdfff';ctx.fillRect(s.x,s.y,s.s,s.s)}ctx.globalAlpha=1;
-for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle='#ffb04d';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}ctx.globalAlpha=1;
-for(const b of bullets){ctx.fillStyle=hexes.fire?'#ff8a4d':'#68e7ff';ctx.fillRect(b.x-2,b.y-10,4,14)}
-for(const b of enemyBullets){ctx.fillStyle='#ff5d73';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill()}
-for(const e of enemies){ctx.fillStyle=e.boss?'#a96cff':e.elite?'#ff9e5d':'#ff5d73';ctx.beginPath();ctx.moveTo(e.x,e.y+e.r);ctx.lineTo(e.x-e.r,e.y-e.r*.7);ctx.lineTo(e.x+e.r,e.y-e.r*.7);ctx.closePath();ctx.fill();if(e.burn>0){ctx.strokeStyle='#ffb04d';ctx.lineWidth=3;ctx.stroke()}if(e.boss){ctx.fillStyle='#1a2340';ctx.fillRect(60,28,W-120,12);ctx.fillStyle='#a96cff';ctx.fillRect(60,28,(W-120)*(e.hp/e.max),12)}}
-for(const d of drones){let x=player.x+Math.cos(d.a)*34,y=player.y+Math.sin(d.a)*24;ctx.fillStyle=hexes.shield?'#7ee8ff':'#b6f6ff';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()}
-ctx.save();ctx.translate(player.x,player.y);if(player.inv>0&&Math.floor(player.inv*15)%2)ctx.globalAlpha=.35;ctx.fillStyle=hexes.ram?'#b06cff':'#5ce1ff';ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(-14,16);ctx.lineTo(0,10);ctx.lineTo(14,16);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-2,-7,4,10);ctx.restore();ctx.restore()}
-function loop(t){if(!running)return;let dt=Math.min(.033,(t-last)/1000||0);last=t;if(!paused&&!ui.hex.classList.contains('hidden')){}else if(!paused)update(dt);draw();requestAnimationFrame(loop)}
-function showHex(){paused=true;ui.hex.classList.remove('hidden');let pool=HEXES.filter(h=>h.req());pool.sort(()=>Math.random()-.5);let picks=pool.slice(0,3);$('#hexChoices').innerHTML='';picks.forEach(h=>{let el=document.createElement('div');el.className='hex';el.innerHTML=`<b>${h.name}</b><small>${h.desc}</small><span class="tag">${h.tag}</span>`;el.onclick=()=>{h.apply();ui.hex.classList.add('hidden');paused=false;toast('获得：'+h.name)};$('#hexChoices').appendChild(el)})}
-function updateUI(){ui.score.textContent=score;ui.lv.textContent=level;ui.hpText.textContent=Math.ceil(player?.hp||0)+'/'+(player?.maxHp||100);ui.hpFill.style.width=Math.max(0,(player?.hp||0)/(player?.maxHp||100)*100)+'%';ui.expFill.style.width=(xp/nextXp*100)+'%'}
-function endGame(){running=false;ui.hud.classList.add('hidden');ui.touch.classList.add('hidden');ui.over.classList.remove('hidden');let build=hexes.ram?'紫焰战车':hexes.drone>=2?'机械蜂群':hexes.fire?'烈焰猎手':'空战新兵';$('#result').innerHTML=`分数：<b>${score}</b><br>等级：<b>${level}</b><br>击破Boss：<b>${bossCount}</b><br>本局Build：<b>${build}</b><br>本局海克斯：${Object.keys(hexes).length||0}`}
-function toast(t){ui.toast.textContent=t;ui.toast.style.opacity=1;clearTimeout(ui.toast._t);ui.toast._t=setTimeout(()=>ui.toast.style.opacity=0,1300)}
-addEventListener('keydown',e=>{keys[e.key]=true;if(e.key==='b'||e.key==='B')bomb();if((e.key==='p'||e.key==='P')&&running)paused=!paused});addEventListener('keyup',e=>keys[e.key]=false);
-$('#startBtn').onclick=startGame;$('#restartBtn').onclick=startGame;$('#bombBtn').onclick=bomb;
-let joyX=0,joyY=0;const joy=$('#joy'),knob=$('#knob');function joyMove(e){let r=joy.getBoundingClientRect(),p=e.touches?e.touches[0]:e,x=p.clientX-(r.left+r.width/2),y=p.clientY-(r.top+r.height/2),m=Math.min(42,Math.hypot(x,y)),a=Math.atan2(y,x);joyX=Math.cos(a)*(m/42);joyY=Math.sin(a)*(m/42);knob.style.transform=`translate(${Math.cos(a)*m}px,${Math.sin(a)*m}px)`}function joyEnd(){joyX=joyY=0;knob.style.transform='translate(0,0)'}joy.addEventListener('touchstart',joyMove,{passive:false});joy.addEventListener('touchmove',e=>{e.preventDefault();joyMove(e)},{passive:false});joy.addEventListener('touchend',joyEnd);joy.addEventListener('pointerdown',e=>{joy.setPointerCapture(e.pointerId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(e.buttons)joyMove(e)});joy.addEventListener('pointerup',joyEnd);
-reset();draw();
-</script>
+  <main id="app">
+    <section id="gameShell">
+      <canvas id="game" width="540" height="960" aria-label="Infinity Plane 游戏画面"></canvas>
+
+      <div id="scanlines"></div>
+      <div id="vignette"></div>
+
+      <section id="hud" class="hidden">
+        <div class="hud-top">
+          <div class="pilot-block">
+            <span class="eyebrow">PILOT</span>
+            <strong id="pilotId">#000001</strong>
+          </div>
+          <div class="threat-block">
+            <span class="eyebrow">THREAT LEVEL</span>
+            <strong id="threatText">I</strong>
+          </div>
+        </div>
+
+        <div class="hud-bottom">
+          <div class="meter hp-meter">
+            <div class="meter-label"><span>HULL</span><span id="hpText">100 / 100</span></div>
+            <div class="meter-track"><div id="hpFill" class="meter-fill"></div></div>
+          </div>
+          <div class="meter xp-meter">
+            <div class="meter-label"><span>SYNC LV.<b id="levelText">1</b></span><span id="scoreText">0</span></div>
+            <div class="meter-track"><div id="xpFill" class="meter-fill"></div></div>
+          </div>
+          <div class="hud-stats">
+            <span>CORES <b id="coreCount">0</b>/8</span>
+            <span>BOMBS <b id="bombCount">3</b></span>
+            <span>TIME <b id="timeText">00:00</b></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="mainMenu" class="screen menu-screen">
+        <div class="menu-backdrop"></div>
+        <div class="menu-content">
+          <div class="studio-mark">INFINITY PROGRAM // ACTIVE</div>
+          <h1><span>INFINITY</span><span>PLANE</span></h1>
+          <p class="menu-subtitle">每一次死亡，都会留下记忆。</p>
+          <div class="menu-actions">
+            <button id="startBtn" class="primary-action"><span>▶</span> 开始行动</button>
+            <button id="storyBtn" class="menu-action">任务档案</button>
+            <button id="databaseBtn" class="menu-action">DATABASE</button>
+          </div>
+          <div class="menu-footer">
+            <span>ALPHA 0.3.0</span>
+            <span>GAMEPLAY REWORK</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="storyScreen" class="screen hidden">
+        <button id="skipStory" class="skip-button">跳过 SPACE / ESC</button>
+        <div class="story-mask">
+          <div id="storyRoll" class="story-roll">
+            <p>公元 2847 年。</p>
+            <p>人类在银河边境发现了一道没有尽头的裂隙。</p>
+            <p class="accent">INFINITY RIFT</p>
+            <p>裂隙中漂浮着能够修改宇宙规则的结晶。</p>
+            <p class="accent">源核 · CORE</p>
+            <p>它让文明跨越了时间、空间与死亡。</p>
+            <p>也让中央主脑 Ω 接管了整个源核网络。</p>
+            <p>舰队失联。殖民地熄灭。文明开始崩塌。</p>
+            <p>幸存者启动最后的协议。</p>
+            <p class="accent">INFINITY PROGRAM</p>
+            <p>驾驶员意识将被实时备份。</p>
+            <p>肉体死亡后，记忆会同步至新的复制体。</p>
+            <p>你不是复活。</p>
+            <p>你只是下一位继承记忆的人。</p>
+            <p class="warning">PILOT #000001</p>
+            <p>连接建立。</p>
+            <p>进入裂隙。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="launchScreen" class="screen hidden launch-screen">
+        <div class="launch-grid"></div>
+        <div class="launch-copy">
+          <p id="launchLine">PILOT SIGNAL DETECTED</p>
+          <div class="sync-track"><div id="syncFill"></div></div>
+          <strong id="syncPercent">0%</strong>
+        </div>
+      </section>
+
+      <section id="coreScreen" class="screen hidden panel-screen">
+        <div class="panel-card wide">
+          <div class="panel-heading">
+            <div><span class="eyebrow">CORE SYNCHRONIZATION</span><h2>选择源核</h2></div>
+            <span id="coreSlotsText">0 / 8</span>
+          </div>
+          <div id="coreChoices" class="core-grid"></div>
+        </div>
+      </section>
+
+      <section id="databaseScreen" class="screen hidden panel-screen">
+        <div class="panel-card">
+          <div class="panel-heading"><div><span class="eyebrow">ARCHIVE NODE</span><h2>DATABASE</h2></div></div>
+          <div class="database-list">
+            <div><b>WORLD ARCHIVE</b><span>Infinity Rift / Ω / Infinity Program</span></div>
+            <div><b>CORE LIBRARY</b><span>已收录第一批能量、无人机与时间系源核</span></div>
+            <div><b>ENEMY DATABASE</b><span>侦察机、重甲机、自爆机、狙击机</span></div>
+            <div><b>STATUS</b><span>更多档案将在后续版本解锁</span></div>
+          </div>
+          <button class="menu-action back-menu">返回</button>
+        </div>
+      </section>
+
+      <section id="gameOverScreen" class="screen hidden panel-screen">
+        <div class="panel-card death-card">
+          <div id="deathSequence" class="death-sequence">
+            <p>LINK LOST</p>
+            <p>Pilot Signal Lost.</p>
+            <p>Searching Backup...</p>
+            <p>Backup Found.</p>
+            <p>Restoring Memory...</p>
+            <p>Synchronization Complete.</p>
+          </div>
+          <div id="resultPanel" class="hidden">
+            <span class="eyebrow">CLONE INITIALIZED</span>
+            <h2 id="cloneId">CLONE ID #000002</h2>
+            <div id="resultText" class="result-grid"></div>
+            <button id="restartBtn" class="primary-action"><span>↻</span> 再次同步</button>
+            <button id="returnMenuBtn" class="menu-action">返回主菜单</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="touchControls" class="hidden">
+        <div id="joystick" class="joystick"><div id="joystickKnob"></div></div>
+        <button id="bombBtn" class="bomb-button">BOMB</button>
+      </section>
+
+      <div id="announcement" class="announcement hidden"></div>
+      <div id="toast" class="toast"></div>
+    </section>
+  </main>
+  <script src="game.js"></script>
 </body>
 </html>
