@@ -10,6 +10,7 @@ const UI={
 const THREAT_ROMAN=['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ω'];
 const keys={};
 let state='boot',running=false,paused=false,last=0,elapsed=0,spawnCd=0,bossSpawned=false,shake=0,joyX=0,joyY=0;
+let dying=false,deathTimer=0,deathFade=0,coreSelection=0,currentCorePool=[];
 let player,bullets,enemies,enemyBullets,particles,drones,score,level,xp,nextXp,bombs,build,rewindHistory,cloneId;
 cloneId=Number(localStorage.getItem('infinityPlaneClone')||1);
 const stars=Array.from({length:110},()=>({x:Math.random()*W,y:Math.random()*H,s:.4+Math.random()*1.8,v:18+Math.random()*65}));
@@ -37,7 +38,7 @@ function startStory(){state='story';showScreen(UI.story);const roll=$('#storyRol
 function beginGame(){reset();state='game';document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));UI.hud.classList.remove('hidden');UI.touch.classList.remove('hidden');running=true;paused=false;last=performance.now();requestAnimationFrame(loop)}
 function reset(){
  player={x:W/2,y:H-SAFE_BOTTOM-75,r:15,speed:315,hp:100,maxHp:100,damage:11,fireRate:165,fireCd:0,inv:0};
- bullets=[];enemies=[];enemyBullets=[];particles=[];drones=[];score=0;level=1;xp=0;nextXp=55;bombs=3;build={laserCd:1.7,chronoActive:0,echoActive:0};rewindHistory=[];elapsed=0;spawnCd=0;bossSpawned=false;updateUI()
+ bullets=[];enemies=[];enemyBullets=[];particles=[];drones=[];score=0;level=1;xp=0;nextXp=55;bombs=3;build={laserCd:1.7,chronoActive:0,echoActive:0};rewindHistory=[];elapsed=0;spawnCd=0;bossSpawned=false;dying=false;deathTimer=0;deathFade=0;updateUI()
 }
 function threatLevel(){return Math.min(5,Math.floor(elapsed/28))}
 function spawnEnemy(){
@@ -68,13 +69,25 @@ function damageEnemy(e,d){e.hp-=d;if(e.hp<=0){score+=e.boss?1500:e.type==='heavy
 function damagePlayer(d){
  if(player.inv>0)return;player.hp-=d;player.inv=.65;shake=12;
  if(player.hp<=0&&build.rewind&&!build.rewindUsed&&rewindHistory.length){const snap=rewindHistory[0];Object.assign(player,{x:snap.x,y:snap.y,hp:Math.max(35,snap.hp)});enemyBullets=[];build.rewindUsed=1;toast('回溯保险已启动');return}
- if(player.hp<=0)die()
+ if(player.hp<=0)startDeathSequence()
+}
+function startDeathSequence(){
+ if(dying)return;
+ dying=true;paused=false;state='dying';deathTimer=0;deathFade=0;player.hp=0;player.inv=999;
+ enemyBullets=[];explode(player.x,player.y,90);shake=22;
+ toast('机体严重受损');
 }
 function pulse(){if(!running||paused||bombs<=0)return;bombs--;enemyBullets=[];for(const e of enemies)e.hp-=120;explode(player.x,player.y,50);toast('脉冲剩余 '+bombs)}
 function explode(x,y,n=18){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=40+Math.random()*230;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.25+Math.random()*.55,max:.8,r:2+Math.random()*4})}shake=9}
 function update(dt){
  elapsed+=dt;const threat=threatLevel();
  for(const s of stars){s.y+=s.v*(1+threat*.08)*dt;if(s.y>H){s.y=0;s.x=Math.random()*W}}
+ if(dying){
+  deathTimer+=dt;deathFade=Math.min(1,Math.max(0,(deathTimer-.45)/1.45));
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.985;p.vy*=.985;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
+  if(deathTimer>=2.15)die();
+  updateUI();return;
+ }
  let dx=(keys.ArrowRight||keys.d?1:0)-(keys.ArrowLeft||keys.a?1:0)+joyX,dy=(keys.ArrowDown||keys.s?1:0)-(keys.ArrowUp||keys.w?1:0)+joyY,len=Math.hypot(dx,dy)||1;
  player.x+=dx/len*player.speed*dt;player.y+=dy/len*player.speed*dt;player.x=Math.max(20,Math.min(W-20,player.x));player.y=Math.max(40,Math.min(H-SAFE_BOTTOM-22,player.y));
  player.inv=Math.max(0,player.inv-dt);player.fireCd-=dt*1000;if(player.fireCd<=0){playerShoot();player.fireCd=player.fireRate}
@@ -88,8 +101,9 @@ function update(dt){
  for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(b.laser){b.life-=dt;for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];if(Math.abs(e.x-b.x)<b.w+e.r&&e.y<player.y&&damageEnemy(e,b.d*dt*7)){enemies.splice(j,1)}}if(b.life<=0)bullets.splice(i,1);continue}b.x+=b.vx*dt;b.y+=b.vy*dt;if(b.y<-30){bullets.splice(i,1);continue}for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];if(Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){if(damageEnemy(e,b.d))enemies.splice(j,1);bullets.splice(i,1);break}}}
  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];e.age+=dt;if(e.boss){e.x+=e.dir*90*dt*slow;if(e.x<70||e.x>W-70)e.dir*=-1}else if(e.type==='suicide'){const a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*(e.v+threat*12)*dt*slow;e.y+=Math.sin(a)*(e.v+threat*12)*dt*slow}else{e.y+=(e.v+threat*8)*dt*slow;if(e.type==='sniper')e.x+=Math.sin(e.age*2)*45*dt}
  e.shoot-=dt*1000*slow;if(e.shoot<=0&&e.type!=='suicide'){enemyShoot(e);e.shoot=e.boss?Math.max(330,700-threat*40):Math.max(700,1450-threat*90)}
- if(Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){damagePlayer(e.boss?30:e.type==='suicide'?28:16);explode(e.x,e.y);enemies.splice(i,1);continue}if(e.y>H+50)enemies.splice(i,1)}
- for(let i=enemyBullets.length-1;i>=0;i--){const b=enemyBullets[i];b.x+=b.vx*dt*slow;b.y+=b.vy*dt*slow;if(Math.hypot(b.x-player.x,b.y-player.y)<b.r+player.r){damagePlayer(10+threat*1.5);enemyBullets.splice(i,1);continue}if(b.y>H+30||b.x<-30||b.x>W+30)enemyBullets.splice(i,1)}
+ if(Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){damagePlayer(e.boss?30:e.type==='suicide'?28:16);explode(e.x,e.y);enemies.splice(i,1);if(dying)break;continue}if(e.y>H+50)enemies.splice(i,1)}
+ for(let i=enemyBullets.length-1;i>=0;i--){const b=enemyBullets[i];b.x+=b.vx*dt*slow;b.y+=b.vy*dt*slow;if(Math.hypot(b.x-player.x,b.y-player.y)<b.r+player.r){damagePlayer(10+threat*1.5);enemyBullets.splice(i,1);if(dying)break;continue}if(b.y>H+30||b.x<-30||b.x>W+30)enemyBullets.splice(i,1)}
+ if(dying){updateUI();return}
  for(const d of drones)d.a+=dt*2.1;for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
  while(xp>=nextXp){xp-=nextXp;level++;nextXp=Math.floor(nextXp*1.23);chooseCore();break}
  const newThreat=threatLevel();if(newThreat!==Number(UI.threat.dataset.level||0)){UI.threat.dataset.level=newThreat;UI.threatFlash.classList.remove('hidden');$('#threatFlashText').textContent=THREAT_ROMAN[newThreat];setTimeout(()=>UI.threatFlash.classList.add('hidden'),1800)}updateUI()
@@ -102,18 +116,53 @@ function draw(){
  for(const b of enemyBullets){ctx.fillStyle='#ff536b';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fill()}
  for(const e of enemies){ctx.save();ctx.translate(e.x,e.y);ctx.fillStyle=e.boss?'#a767ff':e.type==='heavy'?'#ff9c54':e.type==='suicide'?'#ff4360':e.type==='sniper'?'#ffd35a':'#ff6b7e';ctx.beginPath();if(e.type==='heavy'){ctx.rect(-e.r,-e.r,e.r*2,e.r*2)}else{ctx.moveTo(0,e.r);ctx.lineTo(-e.r,-e.r*.75);ctx.lineTo(e.r,-e.r*.75);ctx.closePath()}ctx.fill();ctx.restore();if(e.boss){ctx.fillStyle='#18233b';ctx.fillRect(55,28,W-110,12);ctx.fillStyle='#a767ff';ctx.fillRect(55,28,(W-110)*(e.hp/e.max),12)}}
  for(const d of drones){const x=player.x+Math.cos(d.a)*34,y=player.y+Math.sin(d.a)*23;ctx.fillStyle='#aeefff';ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill()}
- if(build.echoActive>0){ctx.globalAlpha=.28;drawShip(W-player.x,player.y-15,'#b474ff');ctx.globalAlpha=1}drawShip(player.x,player.y,'#5ce1ff');ctx.restore()
+ if(!dying&&build.echoActive>0){ctx.globalAlpha=.28;drawShip(W-player.x,player.y-15,'#b474ff');ctx.globalAlpha=1}
+ if(!dying)drawShip(player.x,player.y,'#5ce1ff');
+ if(deathFade>0){ctx.fillStyle=`rgba(0,0,0,${deathFade})`;ctx.fillRect(0,0,W,H)}
+ ctx.restore()
 }
 function drawShip(x,y,color){ctx.save();ctx.translate(x,y);if(player.inv>0&&Math.floor(player.inv*16)%2)ctx.globalAlpha=.3;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,-19);ctx.lineTo(-15,16);ctx.lineTo(0,9);ctx.lineTo(15,16);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-2,-8,4,11);ctx.restore()}
-function loop(t){if(!running)return;const dt=Math.min(.033,(t-last)/1000||0);last=t;if(!paused)update(dt);draw();requestAnimationFrame(loop)}
-function chooseCore(){paused=true;state='core';showScreen(UI.core);UI.hud.classList.remove('hidden');const pool=CORES.filter(c=>c.can()).sort(()=>Math.random()-.5).slice(0,3);const box=$('#coreChoices');box.innerHTML='';pool.forEach(c=>{const el=document.createElement('button');el.className='core-card';el.innerHTML=`<b>${c.name}</b><p>${c.desc}</p><span>${c.tag}</span>`;el.onclick=()=>{c.apply();state='game';UI.core.classList.add('hidden');paused=false;toast('获得源核：'+c.name)};box.appendChild(el)})}
-function die(){running=false;state='death';UI.hud.classList.add('hidden');UI.touch.classList.add('hidden');showScreen(UI.death);cloneId++;localStorage.setItem('infinityPlaneClone',String(cloneId));$('#archiveCloneCount').textContent='当前驾驶员编号：#'+String(cloneId).padStart(6,'0');const main=$('#deathMain'),sub=$('#deathSub'),stats=$('#deathStats'),btn=$('#syncRestartButton');main.textContent='驾驶员生命信号消失';sub.textContent='';stats.classList.add('hidden');btn.classList.add('hidden');const lines=['正在搜索意识备份……','发现可用备份。','开始同步记忆……','同步完成。','新驾驶员编号：#'+String(cloneId).padStart(6,'0')];let i=0;const timer=setInterval(()=>{sub.innerHTML+=`<div>${lines[i]}</div>`;i++;if(i===lines.length){clearInterval(timer);stats.innerHTML=`本次行动分数：<b>${score}</b><br>到达等级：<b>${level}</b><br>最高危险等级：<b>${THREAT_ROMAN[threatLevel()]}</b>`;stats.classList.remove('hidden');btn.classList.remove('hidden')}},850)}
+function loop(t){if(!running)return;const dt=Math.min(.033,(t-last)/1000||0);last=t;if(!paused||dying)update(dt);draw();requestAnimationFrame(loop)}
+function renderCoreSelection(){
+ const cards=[...document.querySelectorAll('.core-card')];
+ cards.forEach((card,i)=>{card.classList.toggle('selected',i===coreSelection);card.setAttribute('aria-selected',i===coreSelection?'true':'false')});
+ if(cards[coreSelection])cards[coreSelection].focus({preventScroll:true});
+}
+function selectCore(index){
+ const c=currentCorePool[index];if(!c)return;
+ c.apply();state='game';UI.core.classList.add('hidden');paused=false;toast('获得源核：'+c.name)
+}
+function chooseCore(){
+ paused=true;state='core';showScreen(UI.core);UI.hud.classList.remove('hidden');
+ currentCorePool=CORES.filter(c=>c.can()).sort(()=>Math.random()-.5).slice(0,3);coreSelection=0;
+ const box=$('#coreChoices');box.innerHTML='';
+ currentCorePool.forEach((c,i)=>{const el=document.createElement('button');el.className='core-card';el.type='button';el.innerHTML=`<em>${i+1}</em><b>${c.name}</b><p>${c.desc}</p><span>${c.tag}</span>`;el.onclick=()=>selectCore(i);el.onmouseenter=()=>{coreSelection=i;renderCoreSelection()};box.appendChild(el)});
+ renderCoreSelection();
+}
+function die(){
+ running=false;dying=false;state='death';UI.hud.classList.add('hidden');UI.touch.classList.add('hidden');showScreen(UI.death);
+ cloneId++;localStorage.setItem('infinityPlaneClone',String(cloneId));$('#archiveCloneCount').textContent='当前驾驶员编号：#'+String(cloneId).padStart(6,'0');
+ const main=$('#deathMain'),sub=$('#deathSub'),stats=$('#deathStats'),btn=$('#syncRestartButton');
+ main.textContent='';main.classList.remove('visible');sub.textContent='';stats.classList.add('hidden');btn.classList.add('hidden');
+ setTimeout(()=>{main.textContent='驾驶员生命信号消失';main.classList.add('visible')},350);
+ const lines=['正在搜索意识备份……','发现可用备份。','开始同步记忆……','同步完成。','新驾驶员编号：#'+String(cloneId).padStart(6,'0')];let i=0;
+ setTimeout(()=>{const timer=setInterval(()=>{sub.innerHTML+=`<div>${lines[i]}</div>`;i++;if(i===lines.length){clearInterval(timer);stats.innerHTML=`本次行动分数：<b>${score}</b><br>到达等级：<b>${level}</b><br>最高危险等级：<b>${THREAT_ROMAN[threatLevel()]}</b>`;stats.classList.remove('hidden');btn.classList.remove('hidden')}},850)},1150)
+}
 function updateUI(){UI.hpText.textContent=`${Math.ceil(player?.hp||0)} / ${player?.maxHp||100}`;UI.hpFill.style.width=Math.max(0,(player?.hp||0)/(player?.maxHp||100)*100)+'%';UI.xpFill.style.width=(xp/nextXp*100)+'%';UI.score.textContent=score;UI.level.textContent=level;UI.threat.textContent=THREAT_ROMAN[threatLevel()]}
 function toast(text){UI.toast.textContent=text;UI.toast.style.opacity=1;clearTimeout(UI.toast._timer);UI.toast._timer=setTimeout(()=>UI.toast.style.opacity=0,1400)}
 
 $('#startButton').onclick=startStory;$('#skipStory').onclick=beginGame;$('#storyRoll').addEventListener('animationend',beginGame);$('#syncRestartButton').onclick=beginGame;$('#bombButton').onclick=pulse;
 $('#archiveButton').onclick=()=>{showScreen(UI.archive);$('#archiveCloneCount').textContent='当前驾驶员编号：#'+String(cloneId).padStart(6,'0')};$('#settingsButton').onclick=()=>showScreen(UI.settings);
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>showScreen(UI.menu));
-addEventListener('keydown',e=>{keys[e.key]=true;if(e.key==='b'||e.key==='B')pulse();if((e.key==='p'||e.key==='P')&&running)paused=!paused;if(state==='story'&&(e.key==='Escape'||e.key===' '))beginGame()});addEventListener('keyup',e=>keys[e.key]=false);
+addEventListener('keydown',e=>{
+ keys[e.key]=true;
+ if(state==='core'){
+  if(['ArrowDown','ArrowRight'].includes(e.key)){e.preventDefault();coreSelection=(coreSelection+1)%currentCorePool.length;renderCoreSelection();return}
+  if(['ArrowUp','ArrowLeft'].includes(e.key)){e.preventDefault();coreSelection=(coreSelection-1+currentCorePool.length)%currentCorePool.length;renderCoreSelection();return}
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();selectCore(coreSelection);return}
+  if(['1','2','3'].includes(e.key)){e.preventDefault();selectCore(Number(e.key)-1);return}
+ }
+ if(e.key==='b'||e.key==='B')pulse();if((e.key==='p'||e.key==='P')&&running)paused=!paused;if(state==='story'&&(e.key==='Escape'||e.key===' '))beginGame()
+});addEventListener('keyup',e=>keys[e.key]=false);
 const joy=$('#joystick'),knob=$('#knob');function moveJoy(e){const r=joy.getBoundingClientRect(),p=e.touches?e.touches[0]:e,x=p.clientX-r.left-r.width/2,y=p.clientY-r.top-r.height/2,m=Math.min(42,Math.hypot(x,y)),a=Math.atan2(y,x);joyX=Math.cos(a)*m/42;joyY=Math.sin(a)*m/42;knob.style.transform=`translate(${Math.cos(a)*m}px,${Math.sin(a)*m}px)`}function endJoy(){joyX=joyY=0;knob.style.transform='translate(0,0)'}joy.addEventListener('touchstart',moveJoy,{passive:false});joy.addEventListener('touchmove',e=>{e.preventDefault();moveJoy(e)},{passive:false});joy.addEventListener('touchend',endJoy);joy.addEventListener('pointerdown',e=>{joy.setPointerCapture(e.pointerId);moveJoy(e)});joy.addEventListener('pointermove',e=>{if(e.buttons)moveJoy(e)});joy.addEventListener('pointerup',endJoy);
 boot();draw();
